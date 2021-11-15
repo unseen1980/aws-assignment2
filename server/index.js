@@ -18,6 +18,11 @@ const s3 = new AWS.S3({
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
 });
 
+const BUCKETS = {
+  NORMAL: "https://s3-u-767fc203-2701-48fa-ae48.s3.eu-west-1.amazonaws.com/",
+  SMALL: "https://small-images-gallery.s3.eu-west-1.amazonaws.com/",
+};
+
 const docClient = new AWS.DynamoDB.DocumentClient();
 
 const dbRead = async (params) => {
@@ -45,43 +50,20 @@ app.use(
 );
 app.use(logger("dev"));
 
-// Data comes from AWS Lambda
-app.get("/awstips", (req, res) => {
-  const main = async () => {
-    const params = {
-      FunctionName: "AwsTips",
-      Payload: JSON.stringify({}),
-    };
-
-    const result = await new AWS.Lambda().invoke(params).promise();
-
-    console.log("Success!");
-    const payload = result.Payload;
-    const body = JSON.parse(payload);
-    const tip = JSON.parse(body.body).message;
-    console.log(tip);
-    res.json(tip);
-  };
-
-  main().catch((error) => console.error(error));
-});
-
-// This one works only when the code runs in EC2 instance
-app.get("/instance", (req, res) => {
-  var meta = new AWS.MetadataService();
-  meta.request("/latest/meta-data/instance-id", (err, data) => {
-    console.log(data);
-    res.json(data);
-  });
-});
-
 // Data comes from DynamoDB
-app.get("/movies", (req, res) => {
+app.get("/files", (req, res) => {
   let params = {
-    TableName: "Movies",
+    TableName: "Files",
   };
   dbRead(params).then((data) => {
-    res.json(data.slice(-80));
+    const updateData = data.slice(-80).map((file) => {
+      file.name = BUCKETS.SMALL + file.name;
+      file.normal = file.name
+        .replace("small_", "")
+        .replace(BUCKETS.SMALL, BUCKETS.NORMAL);
+      return file;
+    });
+    res.json(updateData);
   });
 });
 
@@ -116,6 +98,12 @@ app.post("/upload", (req, res) => {
           s3.upload(params, function (s3Err, data) {
             if (s3Err) throw s3Err;
             console.log(`File uploaded successfully at ${data.Location}`);
+            fs.rmSync(
+              `${__dirname}/../client/public/uploads/${randomFilename}`,
+              {
+                force: true,
+              }
+            );
           });
         }
       );
