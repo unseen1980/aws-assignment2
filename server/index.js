@@ -18,8 +18,10 @@ const s3 = new AWS.S3({
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
 });
 
+const MAIN_BUCKET_NAME = "s3-u-767fc203-2701-48fa-ae48";
+
 const BUCKETS = {
-  NORMAL: "https://s3-u-767fc203-2701-48fa-ae48.s3.eu-west-1.amazonaws.com/",
+  NORMAL: `https://${MAIN_BUCKET_NAME}.s3.eu-west-1.amazonaws.com/`,
   SMALL: "https://small-images-gallery.s3.eu-west-1.amazonaws.com/",
 };
 
@@ -76,7 +78,7 @@ app.post("/upload", (req, res) => {
   const myFile = req.files.file;
 
   //  mv() method places the file inside public directory
-  const randomFilename = uuidv4() + myFile.name;
+  const randomFilename = uuidv4() + myFile.name.replace(/\s/g, "");
   myFile.mv(
     `${__dirname}/../client/public/uploads/${randomFilename}`,
     function (err) {
@@ -90,8 +92,8 @@ app.post("/upload", (req, res) => {
         (err, data) => {
           if (err) throw err;
           const params = {
-            Bucket: "s3-u-767fc203-2701-48fa-ae48", // pass your bucket name
-            Key: randomFilename, // file will be saved as testBucket/contacts.csv
+            Bucket: MAIN_BUCKET_NAME,
+            Key: randomFilename,
             Body: data,
             ContentType: myFile.mimetype,
           };
@@ -110,8 +112,8 @@ app.post("/upload", (req, res) => {
 
       // returing the response with file path and name
       return res.send({
-        name: myFile.name,
-        path: `https://s3-u-767fc203-2701-48fa-ae48.s3.eu-west-1.amazonaws.com/${randomFilename}`,
+        name: randomFilename,
+        path: `${BUCKETS.NORMAL}${randomFilename}`,
       });
     }
   );

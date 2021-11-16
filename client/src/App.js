@@ -43,7 +43,7 @@ function App() {
 
   return (
     <div>
-      <Divider orientation="left">Upload your PNG's</Divider>
+      <Divider orientation="left">Upload your PNGs</Divider>
       <div className="file-upload" style={{ textAlign: "center" }}>
         <input type="file" id="fileInput" ref={el} onChange={handleChange} />
         {progress > 0 && (
